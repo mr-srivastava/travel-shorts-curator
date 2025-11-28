@@ -1,21 +1,57 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Travel Curator
+
+Travel Curator is a modern web application built with **Next.js** and **shadcn/ui** that helps users discover relevant travel‑related YouTube Shorts. Users can search for a city or country, and the app fetches curated short videos using the YouTube Data API, ensuring the content is truly travel‑focused through transcript analysis.
+
+## Features
+- Clean, premium dashboard UI with dark‑mode support.
+- Search bar to query destinations.
+- Automatic relevance filtering based on video metadata, transcripts, and LLM scoring.
+- Responsive grid of short video cards with embedded player modal.
+- Fast development experience with hot‑module replacement.
+
+## New Setup Overview
+- **Embeddings Disabled** – No vector embeddings are generated. Relevance is judged using a Groq LLM (`relevanceCheck`) combined with simple keyword matching and an engagement factor.
+- **LLM Relevance Scoring** – Title, description, and transcript of each candidate video are sent to the Groq LLM to obtain a relevance score.
+- **Keyword Boost** – Travel‑specific keywords (e.g., flight, hotel, tour, guide, landmark) increase the final score.
+- **Engagement Factor** – View counts are normalized on a log scale to favor popular videos.
+- **Caching** – Search results are cached for 1 hour using `unstable_cache` to reduce API usage.
+- **Environment Variables** – Set `YOUTUBE_API_KEY` (YouTube Data API) and `GROQ_API_KEY` (Groq LLM) in a `.env.local` file.
 
 ## Getting Started
+```bash
+# Install dependencies
+npm install   # or yarn install / pnpm install
 
-First, run the development server:
+# Create a .env.local file with required keys
+cat <<EOF > .env.local
+YOUTUBE_API_KEY=your_youtube_api_key
+GROQ_API_KEY=your_groq_api_key
+EOF
+
+# Run the development server
+npm run dev   # or yarn dev
+```
+Open <http://localhost:3000> in your browser to view the app.
+
+## Tech Stack
+- **Next.js** – React framework for server‑side rendering and routing.
+- **shadcn/ui** – Component library for a polished UI.
+- **YouTube Data API** – Fetches video details and captions.
+- **Groq LLM** – Performs relevance judgment on video content.
+
+## Learn More
+- [Next.js Documentation](https://nextjs.org/docs)
+- [shadcn/ui](https://ui.shadcn.com/)
+- [YouTube Data API Overview](https://developers.google.com/youtube/v3)
+- [Groq API Docs](https://groq.com/docs)
+
+## Deploy on Vercel
+The easiest way to deploy your Next.js app is to use the Vercel Platform.
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# Deploy with Vercel CLI (optional)
+vercel
 ```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
