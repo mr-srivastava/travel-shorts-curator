@@ -13,10 +13,10 @@ interface VideoGridProps {
     onDeselectAll?: () => void;
 }
 
-export function VideoGrid({ 
-    videos, 
-    isLoading, 
-    hasSearched, 
+export function VideoGrid({
+    videos,
+    isLoading,
+    hasSearched,
     onVideoSelect,
     selectedVideoIds = new Set(),
     onToggleSelect,
@@ -28,7 +28,7 @@ export function VideoGrid({
     if (isLoading) {
         return (
             <div className="w-full">
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
                     {Array.from({ length: 10 }).map((_, i) => (
                         <div key={i} className="space-y-3">
                             <Skeleton className="aspect-[9/16] w-full rounded-2xl" />
@@ -69,7 +69,7 @@ export function VideoGrid({
                 <div className="flex items-center justify-between mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
                     <div className="flex items-center gap-4">
                         <span className="text-sm font-medium text-gray-700">
-                            {selectedCount > 0 
+                            {selectedCount > 0
                                 ? `${selectedCount} video${selectedCount === 1 ? '' : 's'} selected`
                                 : 'No videos selected'
                             }
@@ -99,9 +99,9 @@ export function VideoGrid({
 
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
                 {videos.map((video) => (
-                    <VideoCard 
-                        key={video.id} 
-                        video={video} 
+                    <VideoCard
+                        key={video.id}
+                        video={video}
                         onSelect={onVideoSelect}
                         isSelected={selectedVideoIds.has(video.id)}
                         onToggleSelect={onToggleSelect}
