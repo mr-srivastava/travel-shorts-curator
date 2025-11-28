@@ -236,6 +236,24 @@
     "@eslint/core" "^0.17.0"
     levn "^0.4.1"
 
+"@huggingface/inference@^4.13.4":
+  version "4.13.4"
+  resolved "https://registry.yarnpkg.com/@huggingface/inference/-/inference-4.13.4.tgz#7f4541c65f83bbc64fcc9498c2cc385c8fa504a6"
+  integrity sha512-1G6jBDYLAZw7oNrJdMp+0/CafeoNaCLzrDd9fYSX3nhjzMuyWIPZ/MtP5EwXdC0htlFPx+R6JGqPhctAalQO+w==
+  dependencies:
+    "@huggingface/jinja" "^0.5.1"
+    "@huggingface/tasks" "^0.19.65"
+
+"@huggingface/jinja@^0.5.1":
+  version "0.5.3"
+  resolved "https://registry.yarnpkg.com/@huggingface/jinja/-/jinja-0.5.3.tgz#8182a2d6fc9f84c1539fa12c219a5915cdc41264"
+  integrity sha512-asqfZ4GQS0hD876Uw4qiUb7Tr/V5Q+JZuo2L+BtdrD4U40QU58nIRq3ZSgAzJgT874VLjhGVacaYfrdpXtEvtA==
+
+"@huggingface/tasks@^0.19.65":
+  version "0.19.65"
+  resolved "https://registry.yarnpkg.com/@huggingface/tasks/-/tasks-0.19.65.tgz#a6c7256c7b98a4671204633a38e02f220abf4fca"
+  integrity sha512-ecP5bMLwZRKsln6IhTkicIt8Wzn7cYquKYBkJe7K2qkIvvnhzT32wf9dvvFjRqv+cDzdVxOLEdT0DUkVzGiV5A==
+
 "@humanfs/core@^0.19.1":
   version "0.19.1"
   resolved "https://registry.yarnpkg.com/@humanfs/core/-/core-0.19.1.tgz#17c55ca7d426733fe3c561906b8173c336b40a77"
@@ -1257,6 +1275,11 @@ baseline-browser-mapping@^2.8.25:
   version "2.8.31"
   resolved "https://registry.yarnpkg.com/baseline-browser-mapping/-/baseline-browser-mapping-2.8.31.tgz#16c0f1814638257932e0486dbfdbb3348d0a5710"
   integrity sha512-a28v2eWrrRWPpJSzxc+mKwm0ZtVx/G8SepdQZDArnXYU/XS+IF6mp8aB/4E+hH1tyGCoDo3KlUCdlSxGDsRkAw==
+
+baseline-browser-mapping@^2.8.32:
+  version "2.8.32"
+  resolved "https://registry.yarnpkg.com/baseline-browser-mapping/-/baseline-browser-mapping-2.8.32.tgz#5de72358cf363ac41e7d642af239f6ac5ed1270a"
+  integrity sha512-OPz5aBThlyLFgxyhdwf/s2+8ab3OvT7AdTNvKHBwpXomIYeXqpUUuT8LrdtxZSsWJ4R4CU1un4XGh5Ez3nlTpw==
 
 brace-expansion@^1.1.7:
   version "1.1.12"

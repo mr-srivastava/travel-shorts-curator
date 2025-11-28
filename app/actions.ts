@@ -1,12 +1,13 @@
 'use server';
 
-import { expandQuery, batchRelevanceCheck } from '@/lib/groq';
+import { expandQuery, batchRelevanceCheck } from '@/lib/huggingface';
+
 import {
   fetchWithTimeout,
   fetchTranscriptSafely,
   parseDuration,
   mockSearch,
-  TRAVEL_KEYWORDS
+  TRAVEL_KEYWORDS,
 } from '@/lib/youtube';
 
 import {
@@ -14,7 +15,7 @@ import {
   YouTubeSearchItem,
   YouTubeSearchResponse,
   YouTubeStatsResponse,
-  YouTubeChannelResponse
+  YouTubeChannelResponse,
 } from '@/lib/types';
 
 const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
@@ -22,55 +23,56 @@ const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
 /* -------------------------------------------------------------------
  * INTERNAL: Search + score shorts
  * -------------------------------------------------------------------*/
-async function searchTravelShortsInternal(query: string): Promise<VideoResult[]> {
+async function searchTravelShortsInternal(
+  query: string
+): Promise<VideoResult[]> {
   if (!query?.trim()) return [];
 
   if (!YOUTUBE_API_KEY) {
-    console.warn('No YOUTUBE_API_KEY provided. Returning mock data.');
+    console.warn('Missing YOUTUBE_API_KEY → returning mock results.');
     return mockSearch(query);
   }
 
   try {
-    /* ------------------------------------
-     * 1. Query Expansion (1 Groq call)
-     * ------------------------------------*/
+    /* -----------------------------------------------------------
+     * 1. Query Expansion (HuggingFace)
+     * -----------------------------------------------------------*/
     const expandedQueries = await expandQuery(query);
     const queriesToRun = expandedQueries.slice(0, 5);
 
     let allItems: YouTubeSearchItem[] = [];
 
-    /* ------------------------------------
-     * 2. YouTube Search (no Groq usage)
-     * ------------------------------------*/
+    /* -----------------------------------------------------------
+     * 2. YouTube Search for each expanded query
+     * -----------------------------------------------------------*/
     for (const q of queriesToRun) {
-      const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(
+      const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(
         q + ' #shorts'
       )}&type=video&videoDuration=short&maxResults=5&key=${YOUTUBE_API_KEY}`;
 
       try {
-        const res = await fetchWithTimeout(searchUrl);
+        const res = await fetchWithTimeout(url);
         if (res.ok) {
           const data = (await res.json()) as YouTubeSearchResponse;
           if (data.items) allItems.push(...data.items);
         }
       } catch (e) {
-        console.error(`Error searching ${q}:`, e);
+        console.error('YouTube search error:', e);
       }
     }
 
-    /* ------------------------------------
-     * 3. Deduplicate by video ID
-     * ------------------------------------*/
-    const uniqueItemsMap = new Map<string, YouTubeSearchItem>();
-    allItems.forEach(item => uniqueItemsMap.set(item.id.videoId, item));
-    const uniqueItems = Array.from(uniqueItemsMap.values());
+    /* -----------------------------------------------------------
+     * 3. Deduplicate videos
+     * -----------------------------------------------------------*/
+    const uniqueMap = new Map<string, YouTubeSearchItem>();
+    allItems.forEach((item) => uniqueMap.set(item.id.videoId, item));
+    const uniqueItems = [...uniqueMap.values()];
+    if (!uniqueItems.length) return [];
 
-    if (uniqueItems.length === 0) return [];
-
-    /* ------------------------------------
-     * 4. Get Stats + Channel Info
-     * ------------------------------------*/
-    const videoIds = uniqueItems.map(v => v.id.videoId).join(',');
+    /* -----------------------------------------------------------
+     * 4. Fetch Stats + Channel information
+     * -----------------------------------------------------------*/
+    const videoIds = uniqueItems.map((v) => v.id.videoId).join(',');
     const statsUrl = `https://www.googleapis.com/youtube/v3/videos?part=statistics,contentDetails,snippet&id=${videoIds}&key=${YOUTUBE_API_KEY}`;
     const statsRes = await fetchWithTimeout(statsUrl);
 
@@ -80,42 +82,45 @@ async function searchTravelShortsInternal(query: string): Promise<VideoResult[]>
 
     if (statsRes.ok) {
       const stats = (await statsRes.json()) as YouTubeStatsResponse;
-      stats.items?.forEach(item => {
+      stats.items?.forEach((item) => {
         viewCountMap[item.id] = item.statistics?.viewCount || '0';
-        durationMap[item.id] = parseDuration(item.contentDetails?.duration) || 0;
-        if (item.snippet?.channelId) {
-          channelIdMap[item.id] = item.snippet.channelId;
-        }
+        durationMap[item.id] =
+          parseDuration(item.contentDetails?.duration) || 0;
+        channelIdMap[item.id] = item.snippet?.channelId ?? '';
       });
     }
 
-    /* ------------------------------------
-     * 5. Channel Avatars
-     * ------------------------------------*/
-    const uniqueChannelIds = [...new Set(Object.values(channelIdMap))];
+    /* -----------------------------------------------------------
+     * 5. Fetch Channel Avatars
+     * -----------------------------------------------------------*/
     const channelAvatarMap: Record<string, string> = {};
+    const uniqueChannelIds = [...new Set(Object.values(channelIdMap))];
 
-    const chunkSize = 50;
-    for (let i = 0; i < uniqueChannelIds.length; i += chunkSize) {
-      const chunk = uniqueChannelIds.slice(i, i + chunkSize);
+    for (let i = 0; i < uniqueChannelIds.length; i += 50) {
+      const chunk = uniqueChannelIds.slice(i, i + 50);
+      const url = `https://www.googleapis.com/youtube/v3/channels?part=snippet&id=${chunk.join(
+        ','
+      )}&key=${YOUTUBE_API_KEY}`;
 
-      const url = `https://www.googleapis.com/youtube/v3/channels?part=snippet&id=${chunk.join(',')}&key=${YOUTUBE_API_KEY}`;
-      const res = await fetchWithTimeout(url);
+      try {
+        const res = await fetchWithTimeout(url);
+        if (!res.ok) continue;
 
-      if (res.ok) {
         const channelData = (await res.json()) as YouTubeChannelResponse;
-        channelData.items?.forEach(ch => {
-          const avatar = ch.snippet?.thumbnails?.high?.url || ch.snippet?.thumbnails?.medium?.url;
-          if (avatar) channelAvatarMap[ch.id] = avatar;
+        channelData.items?.forEach((c) => {
+          const avatar =
+            c.snippet?.thumbnails?.high?.url ||
+            c.snippet?.thumbnails?.medium?.url;
+          if (avatar) channelAvatarMap[c.id] = avatar;
         });
-      }
+      } catch (e) {}
     }
 
-    /* ------------------------------------
-     * 6. PREPARE LLM BATCH (no LLM call yet)
-     * ------------------------------------*/
+    /* -----------------------------------------------------------
+     * 6. Prepare LLM Batch Payload
+     * -----------------------------------------------------------*/
     const videosForLLM = await Promise.all(
-      uniqueItems.map(async item => {
+      uniqueItems.map(async (item) => {
         const transcript = await fetchTranscriptSafely(item.id.videoId);
 
         return {
@@ -123,35 +128,36 @@ async function searchTravelShortsInternal(query: string): Promise<VideoResult[]>
           text: `
 Title: ${item.snippet.title}
 Description: ${item.snippet.description}
-Transcript: ${transcript.substring(0, 1000)}
-          `.trim(),
+Transcript: ${transcript.slice(0, 1000)}
+`.trim(),
         };
       })
     );
 
-    /* ------------------------------------
-     * 7. BATCH RELEVANCE SCORING (1 Groq call)
-     * ------------------------------------*/
+    /* -----------------------------------------------------------
+     * 7. Batch Relevance Scoring (HuggingFace)
+     * -----------------------------------------------------------*/
     const llmResults = await batchRelevanceCheck(query, videosForLLM);
 
     const llmMap: Record<string, number> = {};
-    llmResults.forEach((v: { id: string; score: number }) => (llmMap[v.id] = v.score));
+    llmResults.forEach((v) => (llmMap[v.id] = v.score));
 
-    /* ------------------------------------
-     * 8. Build Scored Video Objects
-     * ------------------------------------*/
-    const scoredVideos: VideoResult[] = uniqueItems.map(item => {
+    /* -----------------------------------------------------------
+     * 8. Final Scoring (LLM + keywords + views)
+     * -----------------------------------------------------------*/
+    const scored: VideoResult[] = uniqueItems.map((item) => {
       const id = item.id.videoId;
-
-      const llmScore = llmMap[id] ?? 0.5;
+      const llm = llmMap[id] ?? 0.5;
 
       const titleLower = item.snippet.title.toLowerCase();
-      const keywordMatch = TRAVEL_KEYWORDS.some(k => titleLower.includes(k)) ? 1 : 0;
+      const keywordMatch = TRAVEL_KEYWORDS.some((k) => titleLower.includes(k))
+        ? 1
+        : 0;
 
       const views = parseInt(viewCountMap[id] || '0', 10);
       const engagement = Math.min(Math.log10(views + 1) / 7, 1);
 
-      const finalScore = 0.70 * llmScore + 0.15 * keywordMatch + 0.15 * engagement;
+      const score = 0.7 * llm + 0.15 * keywordMatch + 0.15 * engagement;
 
       return {
         id,
@@ -159,42 +165,35 @@ Transcript: ${transcript.substring(0, 1000)}
         thumbnail: item.snippet.thumbnails.high.url,
         channelTitle: item.snippet.channelTitle,
         viewCount: viewCountMap[id],
-        relevanceScore: finalScore,
-        relevanceReason: `LLM: ${llmScore}, Keyword: ${keywordMatch}, Views: ${views}`,
         duration: durationMap[id],
-        channelAvatarUrl: channelAvatarMap[channelIdMap[id] || ''],
+        channelAvatarUrl: channelAvatarMap[channelIdMap[id]],
+        relevanceScore: score,
+        relevanceReason: `LLM=${llm}, kw=${keywordMatch}, views=${views}`,
       };
     });
 
-    /* ------------------------------------
-     * 9. Sort + Return Top 12
-     * ------------------------------------*/
-    return scoredVideos.sort((a, b) => b.relevanceScore - a.relevanceScore).slice(0, 12);
-
-  } catch (error) {
-    console.error('Error searching YouTube:', error);
+    /* -----------------------------------------------------------
+     * 9. Sort & Return Top
+     * -----------------------------------------------------------*/
+    return scored
+      .sort((a, b) => b.relevanceScore - a.relevanceScore)
+      .slice(0, 12);
+  } catch (e) {
+    console.error('searchTravelShortsInternal error:', e);
     return [];
   }
 }
 
 /* -------------------------------------------------------------------
- * Export with conditional caching
- * - Development: No caching (fresh data every time)
- * - Production: 1-hour cache with tags for invalidation
+ * Export with caching rules
  * -------------------------------------------------------------------*/
-export async function searchTravelShorts(query: string): Promise<VideoResult[]> {
+export async function searchTravelShorts(query: string) {
   const isDev = process.env.NODE_ENV === 'development';
 
-  if (isDev) {
-    // No caching in development
-    return searchTravelShortsInternal(query);
-  }
+  if (isDev) return searchTravelShortsInternal(query);
 
-  // In production, use Next.js cache with revalidation
   const { cache } = await import('react');
-  const cachedSearch = cache(async (q: string) => {
-    return searchTravelShortsInternal(q);
-  });
+  const cached = cache(searchTravelShortsInternal);
 
-  return cachedSearch(query);
+  return cached(query);
 }
