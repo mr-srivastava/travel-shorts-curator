@@ -11,8 +11,9 @@ Travel Curator fetches YouTube Shorts that are truly relevant to the user's trav
    - For each candidate video, request the automatically generated captions (if available) via the `captions` endpoint.
    - If captions are missing, fall back to the video description and title.
 
-3. **Content Relevance Scoring**
-   - **LLM Relevance Check**: Send the title, description, and transcript to the Groq LLM (`relevanceCheck`) to obtain a relevance score.
+3. **Content Relevance Scoring** – The system leverages the HuggingFace LLM to assess each video’s travel relevance.
+   - **LLM Relevance Check**: The HuggingFace LLM (`relevanceCheck`) receives a prompt containing the video title, description, and transcript. It evaluates travel relevance using a custom prompt that emphasizes destination relevance, content quality, and user engagement, returning a relevance score between 0 and 1.
+  - *Prompt Example*: "Assess how well this video describes travel experiences for the destination X. Consider relevance, informational value, and viewer interest. Provide a score from 0 (not relevant) to 1 (highly relevant)."
    - **Keyword Boost**: Travel‑specific keywords (e.g., "flight", "hotel", "tour", "guide", "landmark") increase the final score.
    - **Engagement Factor**: View counts are normalized on a log scale to favor popular videos.
 

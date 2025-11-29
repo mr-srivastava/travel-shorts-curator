@@ -10,12 +10,12 @@ Travel Curator is a modern web application built with **Next.js** and **shadcn/u
 - Fast development experience with hot‑module replacement.
 
 ## New Setup Overview
-- **Embeddings Disabled** – No vector embeddings are generated. Relevance is judged using a Groq LLM (`relevanceCheck`) combined with simple keyword matching and an engagement factor.
-- **LLM Relevance Scoring** – Title, description, and transcript of each candidate video are sent to the Groq LLM to obtain a relevance score.
+- **Embeddings Disabled** – No vector embeddings are generated. Relevance is judged using a HuggingFace LLM (`relevanceCheck`) combined with simple keyword matching and an engagement factor.
+- **LLM Relevance Scoring** – The HuggingFace LLM (`relevanceCheck`) receives a prompt containing the video title, description, and transcript. It evaluates travel relevance using a custom prompt that emphasizes destination relevance, content quality, and user engagement, returning a relevance score between 0 (not relevant) and 1 (highly relevant).
 - **Keyword Boost** – Travel‑specific keywords (e.g., flight, hotel, tour, guide, landmark) increase the final score.
 - **Engagement Factor** – View counts are normalized on a log scale to favor popular videos.
 - **Caching** – Search results are cached for 1 hour using `unstable_cache` to reduce API usage.
-- **Environment Variables** – Set `YOUTUBE_API_KEY` (YouTube Data API) and `GROQ_API_KEY` (Groq LLM) in a `.env.local` file.
+- **Environment Variables** – Set `YOUTUBE_API_KEY` (YouTube Data API) and `HF_TOKEN` (HuggingFace API token) in a `.env.local` file.
 
 ## Getting Started
 ```bash
