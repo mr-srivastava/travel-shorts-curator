@@ -25,7 +25,7 @@ npm install   # or yarn install / pnpm install
 # Create a .env.local file with required keys
 cat <<EOF > .env.local
 YOUTUBE_API_KEY=your_youtube_api_key
-GROQ_API_KEY=your_groq_api_key
+HF_TOKEN=your_huggingface_api_token
 EOF
 
 # Run the development server
@@ -37,13 +37,13 @@ Open <http://localhost:3000> in your browser to view the app.
 - **Next.js** – React framework for server‑side rendering and routing.
 - **shadcn/ui** – Component library for a polished UI.
 - **YouTube Data API** – Fetches video details and captions.
-- **Groq LLM** – Performs relevance judgment on video content.
+- **HuggingFace LLM** – Performs relevance judgment on video content.
 
 ## Learn More
 - [Next.js Documentation](https://nextjs.org/docs)
 - [shadcn/ui](https://ui.shadcn.com/)
 - [YouTube Data API Overview](https://developers.google.com/youtube/v3)
-- [Groq API Docs](https://groq.com/docs)
+- [HuggingFace Docs](https://huggingface.co/docs)
 
 ## Deploy on Vercel
 The easiest way to deploy your Next.js app is to use the Vercel Platform.
