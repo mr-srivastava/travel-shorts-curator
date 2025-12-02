@@ -18,6 +18,7 @@ export interface YouTubeSearchItem {
     description: string;
     channelTitle: string;
     thumbnails: { high: { url: string } };
+    publishedAt: string;
   };
 }
 

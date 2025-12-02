@@ -1,26 +1,40 @@
 # Travel Curator
 
-Travel Curator is a modern web application built with **Next.js** and **shadcn/ui** that helps users discover relevant travel‑related YouTube Shorts. Users can search for a city or country, and the app fetches curated short videos using the YouTube Data API, ensuring the content is truly travel‑focused through transcript analysis.
+Travel Curator is a modern web application built with **Next.js** and **shadcn/ui** that helps users discover relevant travel-related YouTube Shorts. Users can search for a city or country, and the app fetches curated short videos using the YouTube Data API, ensuring the content is truly travel-focused through LLM-powered relevance scoring.
 
 ## Features
-- Clean, premium dashboard UI with dark‑mode support.
-- Search bar to query destinations.
-- Automatic relevance filtering based on video metadata, transcripts, and LLM scoring.
-- Responsive grid of short video cards with embedded player modal.
-- Fast development experience with hot‑module replacement.
 
-## New Setup Overview
-- **Embeddings Disabled** – No vector embeddings are generated. Relevance is judged using a HuggingFace LLM (`relevanceCheck`) combined with simple keyword matching and an engagement factor.
-- **LLM Relevance Scoring** – The HuggingFace LLM (`relevanceCheck`) receives a prompt containing the video title, description, and transcript. It evaluates travel relevance using a custom prompt that emphasizes destination relevance, content quality, and user engagement, returning a relevance score between 0 (not relevant) and 1 (highly relevant).
-- **Keyword Boost** – Travel‑specific keywords (e.g., flight, hotel, tour, guide, landmark) increase the final score.
-- **Engagement Factor** – View counts are normalized on a log scale to favor popular videos.
-- **Caching** – Search results are cached for 1 hour using `unstable_cache` to reduce API usage.
-- **Environment Variables** – Set `YOUTUBE_API_KEY` (YouTube Data API) and `HF_TOKEN` (HuggingFace API token) in a `.env.local` file.
+- Clean, premium dashboard UI with dark-mode support
+- Search bar to query destinations
+- LangChain-powered query expansion and relevance filtering
+- Automatic relevance scoring based on video metadata, transcripts, and LLM analysis
+- Responsive grid of short video cards with embedded player modal
+- Fast development experience with hot-module replacement
+
+## How It Works
+
+### LangChain Pipeline
+
+The app uses LangChain TS with a HuggingFace adapter for intelligent video curation:
+
+1. **Query Expansion** – User queries are expanded into 10 alternative search terms using a LangChain `RunnableSequence` chain
+2. **YouTube Search** – Each expanded query searches YouTube for shorts
+3. **Batch Relevance Scoring** – All videos are scored in a single LLM call with structured JSON output
+4. **Final Ranking** – Combines LLM score (70%), keyword matching (15%), and engagement factor (15%)
+
+### Scoring Criteria
+
+- `1.0` = Highly relevant (itineraries, places, food, guides, vlogs)
+- `0.5` = Partially relevant (vibes, lifestyle, partial travel content)
+- `0.0` = Not relevant (pranks, memes, unrelated)
+
+See [GET_RELEVANT_SHORTS.md](./GET_RELEVANT_SHORTS.md) for detailed pipeline documentation.
 
 ## Getting Started
+
 ```bash
 # Install dependencies
-npm install   # or yarn install / pnpm install
+yarn install   # or yarn / pnpm
 
 # Create a .env.local file with required keys
 cat <<EOF > .env.local
@@ -29,44 +43,41 @@ HF_TOKEN=your_huggingface_api_token
 EOF
 
 # Run the development server
-npm run dev   # or yarn dev
+yarn dev
 ```
-Open <http://localhost:3000> in your browser to view the app.
+
+Open <http://localhost:3000> in your browser.
+
+## Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `YOUTUBE_API_KEY` | YouTube Data API key |
+| `HF_TOKEN` | HuggingFace API token for LLM inference |
 
 ## Tech Stack
-- **Next.js** – React framework for server‑side rendering and routing.
-- **shadcn/ui** – Component library for a polished UI.
-- **YouTube Data API** – Fetches video details and captions.
-- **HuggingFace LLM** – Performs relevance judgment on video content.
+
+- **Next.js** – React framework for server-side rendering and routing
+- **shadcn/ui** – Component library for a polished UI
+- **LangChain TS** – LLM orchestration with `RunnableSequence` chains
+- **HuggingFace Inference** – LLM backend via custom `ChatHuggingFaceAdapter`
+- **YouTube Data API** – Fetches video details and captions
+
+## Project Structure
+
+```
+lib/llm/
+├── langchain.ts    # LangChain chains (expandQuery, batchRelevanceCheck)
+├── hf-adapter.ts   # ChatHuggingFaceAdapter for @langchain/core
+├── config.ts       # Model config, timeouts, retry settings
+├── schemas.ts      # Zod schemas for validation
+└── index.ts        # Public exports
+```
 
 ## Learn More
+
 - [Next.js Documentation](https://nextjs.org/docs)
+- [LangChain JS/TS](https://js.langchain.com/)
 - [shadcn/ui](https://ui.shadcn.com/)
 - [YouTube Data API Overview](https://developers.google.com/youtube/v3)
-- [HuggingFace Docs](https://huggingface.co/docs)
-
-## Deploy on Vercel
-The easiest way to deploy your Next.js app is to use the Vercel Platform.
-
-```bash
-# Deploy with Vercel CLI (optional)
-vercel
-```
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- [HuggingFace Inference API](https://huggingface.co/docs/api-inference)
